@@ -96,9 +96,9 @@ function mimeFromCode(c) {
 function parseHeader(buf, keyStr) {
   let hdrOffset = -1;
   if (buf.length >= 56 && buf[24] === 0x53 && buf[25] === 0x56 && buf[26] === 0x49 && buf[27] === 0x44 && buf[28] === 0x32) {
-    hdrOffset = 24; // New MP4 ftyp + SVID2 wrapper
+    hdrOffset = 24;
   } else if (buf.length >= 32 && buf[0] === 0x53 && buf[1] === 0x56 && buf[2] === 0x49 && buf[3] === 0x44 && buf[4] === 0x32) {
-    hdrOffset = 0;  // SVID2 raw
+    hdrOffset = 0;
   }
   if (hdrOffset === -1) {
     return { error: 'Invalid file! Yeh locked SVID2 video nahi hai.' };
@@ -150,7 +150,7 @@ self.addEventListener('message', async (event) => {
       return reply({ ok: true, mimeType: parsed.mimeType, origSize: parsed.origSize });
     }
   } catch (err) {
-    reply({ ok: false, error: 'CORS ya Network Error! Worker URL aur video link check karein.' });
+    reply({ ok: false, error: 'Network/CORS Error! Check karein ki _worker.js ya Worker URL sahi hai.' });
   }
 });
 
