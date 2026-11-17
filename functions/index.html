@@ -3,402 +3,273 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IA Edge CDN Player + V2 Locker</title>
-  <script src="https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js"
-    onerror="var s=document.createElement('script');s.src='https://unpkg.com/mp4box@0.5.2/dist/mp4box.all.min.js';document.head.appendChild(s);"></script>
+  <title>Exclusive Video Player</title>
   <style>
-    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-    body{margin:0;min-height:100vh;background:#060913;color:#e2e8f0;padding:14px}
-    .card{max-width:800px;margin:auto;background:#0f172a;border:1px solid #1e293b;border-radius:14px;padding:18px}
-    h1{margin:0 0 10px;font-size:1.2rem;color:#fff}
-    .tabs{display:flex;gap:8px;margin-bottom:14px}
-    .tb{flex:1;padding:10px;border:1px solid #334155;background:#060913;color:#cbd5e1;border-radius:9px;font-weight:700;cursor:pointer}
-    .tb.on{background:#2563eb;border-color:#3b82f6;color:#fff}
-    .pn{display:none}.pn.on{display:block}
-    label{display:block;margin:10px 0 4px;font-size:.82rem;color:#cbd5e1;font-weight:600}
-    input,select{width:100%;padding:10px 12px;border-radius:9px;border:1px solid #334155;background:#060913;color:#fff;font-size:.92rem;outline:none}
-    #fpw{display:none}
-    .row{display:flex;gap:8px;margin-top:14px}
-    .btn{flex:1;padding:12px;border:0;border-radius:9px;background:#22c55e;color:#052e16;font-weight:700;font-size:.96rem;cursor:pointer}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .stop{flex:0 0 95px;background:#dc2626;color:#fff;display:none}
-    .tap{display:none;margin-top:12px;width:100%;padding:14px;border:0;border-radius:10px;background:#3b82f6;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
-    .st{margin-top:12px;padding:10px 12px;border-radius:9px;font-size:.83rem;background:#060913;border:1px solid #334155;display:none;white-space:pre-wrap;word-break:break-word}
-    .st.show{display:block}.st.err{border-color:#ef4444;color:#fca5a5}.st.ok{border-color:#22c55e;color:#86efac}
-    .pw{margin-top:8px;height:7px;background:#060913;border-radius:9px;overflow:hidden;display:none}
-    .pb{height:100%;width:0;background:linear-gradient(90deg,#2563eb,#22c55e)}
-    .specs{display:none;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:12px}
-    .sb{background:#060913;border:1px solid #1e293b;border-radius:8px;padding:8px 10px}
-    .sk{font-size:.68rem;color:#64748b;text-transform:uppercase}.sv{font-size:.84rem;font-weight:600;margin-top:2px;word-break:break-word}
-    .tel{display:none;flex-wrap:wrap;gap:10px;margin-top:10px;background:#060913;border:1px solid #1e293b;border-radius:8px;padding:8px 10px;font-size:.77rem;color:#94a3b8}
-    .tel b{color:#38bdf8}.tel .m b{color:#4ade80}
-    video{width:100%;margin-top:12px;border-radius:10px;background:#000;display:none;max-height:70vh}
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+    body {
+      margin: 0; min-height: 100dvh; background: #07090f; color: #f8fafc;
+      display: flex; align-items: center; justify-content: center; padding: 12px;
+    }
+    .panel {
+      width: 100%; max-width: 940px; background: #111625; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.65);
+    }
+    .header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .brand { font-weight: 800; font-size: 1.1rem; color: #38bdf8; margin-right: auto; }
+    .tabs { display: flex; gap: 8px; }
+    .tab-btn {
+      padding: 8px 14px; border-radius: 8px; border: 1px solid #334155;
+      background: #0b101d; color: #94a3b8; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+    }
+    .tab-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
+    .inputs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    input {
+      padding: 10px 12px; border-radius: 8px; border: 1px solid #334155;
+      background: #090d16; color: #fff; font-size: 0.88rem; outline: none;
+    }
+    input:focus { border-color: #38bdf8; }
+    .grow { flex: 1; min-width: 210px; }
+    .btn {
+      padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #0284c7, #6366f1); color: #fff; font-weight: 700;
+    }
+    .local-drop {
+      width: 100%; border: 2px dashed #334155; border-radius: 10px; padding: 16px;
+      text-align: center; cursor: pointer; color: #cbd5e1; font-size: 0.9rem; background: #0b101d;
+    }
+    .local-drop.drag { border-color: #38bdf8; background: rgba(56,189,248,0.08); }
+    .player-box {
+      position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;
+      border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+    }
+    video { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .overlay-click { position: absolute; inset: 0; z-index: 2; }
+    .watermark {
+      position: absolute; z-index: 3; pointer-events: none;
+      color: rgba(255,255,255,0.22); font-size: 0.85rem; font-weight: 700; transition: top 2s linear, left 2s linear;
+    }
+    .controls {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+      padding: 28px 14px 12px; display: flex; flex-direction: column; gap: 8px;
+      opacity: 0; transition: opacity 0.25s;
+    }
+    .player-box:hover .controls, .controls.visible { opacity: 1; }
+    .seek { width: 100%; accent-color: #38bdf8; cursor: pointer; }
+    .ctrl-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+    .ctrl-btn { background: none; border: none; color: #fff; font-size: 1.15rem; cursor: pointer; }
+    .vol { width: 75px; accent-color: #38bdf8; cursor: pointer; }
+    select { background: #1e293b; color: #fff; border: 1px solid #334155; border-radius: 6px; padding: 3px 6px; }
+    .spacer { flex: 1; }
+    .msg { margin-top: 10px; font-size: 0.85rem; color: #94a3b8; }
+    .err { color: #f87171; font-weight: 600; }
+    .ok { color: #4ade80; }
+    .hidden { display: none !important; }
   </style>
 </head>
-<body>
-  <div class="card">
-    <h1>IA Edge CDN Player + V2 Locker</h1>
-    <div class="tabs">
-      <button class="tb on" onclick="tab('play',this)">▶ Play (Edge CDN + ABR)</button>
-      <button class="tb" onclick="tab('lock',this)">⚡ Lock V2 (Instant Play)</button>
+<body oncontextmenu="return false;">
+  <div class="panel">
+    <div class="header">
+      <div class="brand">🛡️ Exclusive Video Player</div>
+      <div class="tabs">
+        <button class="tab-btn active" id="tabOnline">🌐 Online Stream</button>
+        <button class="tab-btn" id="tabLocal">📱 Device File</button>
+      </div>
     </div>
 
-    <div id="pn-play" class="pn on">
-      <label>1. Internet Archive URL ya Item ID</label>
-      <input type="url" id="iaUrl" placeholder="https://archive.org/details/..." />
-      <div id="fpw"><label>Video Select Karein</label><select id="fSel" onchange="if(document.getElementById('pw').value)go()"></select></div>
-      <label>2. Password</label>
-      <input type="password" id="pw" placeholder="Password daalein" onkeydown="if(event.key==='Enter')go()" />
-      <div class="row">
-        <button class="btn" id="pBtn" onclick="go()">Play Now</button>
-        <button class="btn stop" id="sBtn" onclick="stopAll()">Stop</button>
-      </div>
-      <div class="pw" id="pwB"><div class="pb" id="pBar"></div></div>
-      <div id="st" class="st"></div>
-      <button class="tap" id="tapBtn" onclick="manualPlay()">▶ Ready! Tap to Play</button>
-      <div class="specs" id="specs"></div>
-      <div class="tel" id="tel">
-        <span>CDN: <b id="tCdn">-</b></span>
-        <span>Speed: <b id="tS">0 Mbps</b></span>
-        <span>Chunk: <b id="tC">128 KB</b></span>
-        <span>Buf: <b id="tB">0s</b></span>
-        <span class="m">RAM: <b id="tM">0/95 MB</b></span>
-      </div>
-      <video id="vid" controls playsinline></video>
+    <div class="inputs" id="keyRow">
+      <input type="password" id="keyInput" value="MY-PRIVATE-PLAYER-KEY-2026" placeholder="Secret Key" class="grow" />
     </div>
 
-    <div id="pn-lock" class="pn">
-      <label>1. Original MP4 Select Karein</label>
-      <input type="file" id="lMp4" accept="video/mp4,.mp4,.mov" />
-      <label>2. Password</label>
-      <input type="password" id="lp1" placeholder="Strong password" />
-      <label>3. Confirm Password</label>
-      <input type="password" id="lp2" placeholder="Wahi password dobara" />
-      <button class="btn" id="lBtn" onclick="lockV2()" style="margin-top:14px">⚡ Lock V2 (0.5s Play Ready)</button>
-      <div id="lst" class="st"></div>
+    <div class="inputs" id="onlineBox">
+      <input type="text" id="workerInput" placeholder="Cloudflare Worker URL (https://xxx.workers.dev)" class="grow" />
+      <input type="text" id="urlInput" placeholder="https://archive.org/download/.../video_locked.mp4" class="grow" />
+      <button class="btn" id="playStreamBtn">▶ Stream Online</button>
     </div>
+
+    <div class="inputs hidden" id="localBox">
+      <div class="local-drop" id="localDrop">📂 Phone/PC mein saved locked .mp4 file yahan select karein</div>
+      <input type="file" id="fileInput" hidden />
+    </div>
+
+    <div class="player-box" id="playerBox">
+      <video id="video" playsinline controlsList="nodownload noplaybackrate" disablePictureInPicture></video>
+      <div class="overlay-click" id="overlayClick"></div>
+      <div class="watermark" id="watermark">EXCLUSIVE PLAYER • PROTECTED</div>
+      <div class="controls" id="controls">
+        <input type="range" class="seek" id="seekBar" value="0" min="0" max="100" step="0.1" />
+        <div class="ctrl-row">
+          <button class="ctrl-btn" id="playBtn">▶️</button>
+          <span id="timeText">00:00 / 00:00</span>
+          <div class="spacer"></div>
+          <button class="ctrl-btn" id="muteBtn">🔊</button>
+          <input type="range" class="vol" id="volBar" min="0" max="1" step="0.05" value="1" />
+          <select id="speedSel">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+          <button class="ctrl-btn" id="fsBtn">⛶</button>
+        </div>
+      </div>
+    </div>
+    <div class="msg" id="msg">Ready. Online stream karein ya device par saved locked video chalayein.</div>
   </div>
 
-<script>
-const M1=new TextEncoder().encode('AES512MP4LOCKV01'),M2=new TextEncoder().encode('AES512MP4STREAM2');
-const ITERS=300000,MEM_CAP=95*1048576,IDB_LIM=48*1048576,MAX_SLICE=4*1048576,Z256=new Uint8Array(262144);
-let S=null,metaCache={id:null,m:null};
+  <script>
+    const tabOnline = document.getElementById('tabOnline');
+    const tabLocal = document.getElementById('tabLocal');
+    const onlineBox = document.getElementById('onlineBox');
+    const localBox = document.getElementById('localBox');
+    const keyInput = document.getElementById('keyInput');
+    const workerInput = document.getElementById('workerInput');
+    const urlInput = document.getElementById('urlInput');
+    const playStreamBtn = document.getElementById('playStreamBtn');
+    const localDrop = document.getElementById('localDrop');
+    const fileInput = document.getElementById('fileInput');
+    const video = document.getElementById('video');
+    const controls = document.getElementById('controls');
+    const playBtn = document.getElementById('playBtn');
+    const seekBar = document.getElementById('seekBar');
+    const timeText = document.getElementById('timeText');
+    const volBar = document.getElementById('volBar');
+    const speedSel = document.getElementById('speedSel');
+    const msg = document.getElementById('msg');
+    const watermark = document.getElementById('watermark');
+    const playerBox = document.getElementById('playerBox');
 
-function tab(t,b){document.querySelectorAll('.tb').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.pn').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.getElementById('pn-'+t).classList.add('on')}
-const st=(m,c='',id='st')=>{const e=document.getElementById(id);e.textContent=m;e.className='st show '+c};
-const pg=p=>{const w=document.getElementById('pwB'),b=document.getElementById('pBar');if(p===null){w.style.display='none';return}w.style.display='block';b.style.width=Math.max(0,Math.min(100,p))+'%'};
-const fb=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':b<1073741824?(b/1048576).toFixed(2)+' MB':(b/1073741824).toFixed(2)+' GB';
-const ft=s=>!isFinite(s)?'0:00':(s>=3600?Math.floor(s/3600)+':':'')+String(Math.floor((s%3600)/60)).padStart(s>=3600?2:1,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
-const ru=u=>'/cdn?url='+encodeURIComponent(u);
+    workerInput.value = localStorage.getItem('svid_cf_worker') || '';
 
-function manualPlay(){const v=document.getElementById('vid');if(v.buffered.length&&v.currentTime<v.buffered.start(0))v.currentTime=v.buffered.start(0);v.play().then(()=>document.getElementById('tapBtn').style.display='none').catch(()=>{})}
-async function waitMP4Box(){for(let i=0;i<50;i++){if(typeof MP4Box!=='undefined')return;await new Promise(r=>setTimeout(r,100))}throw new Error('MP4Box load nahi hui, refresh karein.')}
-function makeCtr(n8,idx){const c=new Uint8Array(16);c.set(n8,0);new DataView(c.buffer).setUint32(8,idx,false);return c}
-
-async function deriveKeys(pw,salt,usage,needCtr){
-  const b=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
-  const kb=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:ITERS,hash:'SHA-512'},b,512));
-  const gk1=await crypto.subtle.importKey('raw',kb.subarray(0,32),'AES-GCM',false,[usage]);
-  const gk2=await crypto.subtle.importKey('raw',kb.subarray(32,64),'AES-GCM',false,[usage]);
-  let ck1=null,ck2=null;
-  if(needCtr){
-    const kbc=new Uint8Array(await crypto.subtle.digest('SHA-512',kb));
-    ck1=await crypto.subtle.importKey('raw',kbc.subarray(0,32),'AES-CTR',false,[usage]);
-    ck2=await crypto.subtle.importKey('raw',kbc.subarray(32,64),'AES-CTR',false,[usage]);
-  }
-  return{gk1,gk2,ck1,ck2};
-}
-
-function pushZ(p,n){let r=n;while(r>0){const t=Math.min(r,Z256.length);p.push(t===Z256.length?Z256:Z256.subarray(0,t));r-=t}}
-function freeH(sz,hl){const u=new Uint8Array(hl),v=new DataView(u.buffer);if(hl===8)v.setUint32(0,sz,false);else{v.setUint32(0,1,false);v.setBigUint64(8,BigInt(sz),false)}u[4]=102;u[5]=114;u[6]=101;u[7]=101;return u}
-async function scanF(file){
-  const bx=[];let o=0;
-  while(o+8<=file.size){
-    const b=await file.slice(o,Math.min(file.size,o+16)).arrayBuffer(),v=new DataView(b),u=new Uint8Array(b);
-    let sz=v.getUint32(0,false),hl=8;const t=String.fromCharCode(u[4],u[5],u[6],u[7]);
-    if(sz===1){if(b.byteLength<16)break;sz=Number(v.getBigUint64(8,false));hl=16}else if(sz===0)sz=file.size-o;
-    if(sz<hl||o+sz>file.size)break;bx.push({t,o,sz,hl});o+=sz;
-  }return bx;
-}
-async function lockV2(){
-  const f=document.getElementById('lMp4').files[0],p1=document.getElementById('lp1').value,p2=document.getElementById('lp2').value,btn=document.getElementById('lBtn');
-  if(!f)return st('MP4 select karein.','err','lst');if(!p1||p1!==p2)return st('Passwords match nahi kar rahe.','err','lst');
-  btn.disabled=true;const t0=performance.now();st('Locking V2...','','lst');
-  try{
-    const bx=await scanF(f),hb=[];let ps=0,pe=f.size;
-    for(const b of bx){if(b.t==='moov'||b.t==='moof'||b.t==='sidx')hb.push(b);else if(b.t==='mdat'){ps=b.o+b.hl;pe=b.o+b.sz}}
-    if(!hb.length)throw new Error('Standard MP4 nahi hai.');
-    const step=f.size<=20*1048576?65536:262144,sLen=16384;
-    const salt=crypto.getRandomValues(new Uint8Array(32)),iv1=crypto.getRandomValues(new Uint8Array(12)),iv2=crypto.getRandomValues(new Uint8Array(12));
-    const n1=crypto.getRandomValues(new Uint8Array(8)),n2=crypto.getRandomValues(new Uint8Array(8));
-    const{gk1,gk2,ck1,ck2}=await deriveKeys(p1,salt,'encrypt',true);
-
-    const hds=await Promise.all(hb.map(b=>f.slice(b.o,b.o+b.sz).arrayBuffer().then(x=>new Uint8Array(x))));
-    let mLen=44;hb.forEach(b=>mLen+=12+b.sz);
-    const meta=new Uint8Array(mLen),mv=new DataView(meta.buffer);
-    mv.setBigUint64(0,BigInt(ps),false);mv.setBigUint64(8,BigInt(pe),false);mv.setUint32(16,step,false);mv.setUint32(20,sLen,false);
-    meta.set(n1,24);meta.set(n2,32);mv.setUint32(40,hb.length,false);
-    let mp=44;hb.forEach((b,i)=>{mv.setBigUint64(mp,BigInt(b.o),false);mp+=8;mv.setUint32(mp,b.sz,false);mp+=4;meta.set(hds[i],mp);mp+=b.sz});
-    const g2=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv:iv2},gk2,await crypto.subtle.encrypt({name:'AES-GCM',iv:iv1},gk1,meta)));
-
-    const sReg=[];for(let pos=ps,idx=0;pos<pe;pos+=step,idx++)sReg.push({o:pos,l:Math.min(sLen,pe-pos),idx});
-    const encS=new Array(sReg.length);
-    for(let i=0;i<sReg.length;i+=64){
-      const bt=sReg.slice(i,i+64),bf=await Promise.all(bt.map(r=>f.slice(r.o,r.o+r.l).arrayBuffer()));
-      const es=await Promise.all(bf.map(async(ab,k)=>new Uint8Array(await crypto.subtle.encrypt({name:'AES-CTR',counter:makeCtr(n2,bt[k].idx),length:32},ck2,await crypto.subtle.encrypt({name:'AES-CTR',counter:makeCtr(n1,bt[k].idx),length:32},ck1,ab)))));
-      es.forEach((e,k)=>encS[i+k]=e);
-    }
-    const ops=[...hb.map(b=>({o:b.o,l:b.sz,k:'f',hl:b.hl})),...sReg.map((r,i)=>({o:r.o,l:r.l,k:'c',d:encS[i]}))].sort((a,b)=>a.o-b.o);
-    const out=[];let cur=0;
-    for(const o of ops){if(o.o>cur)out.push(f.slice(cur,o.o));if(o.k==='f'){out.push(freeH(o.l,o.hl));pushZ(out,o.l-o.hl)}else out.push(o.d);cur=o.o+o.l}
-    if(cur<f.size)out.push(f.slice(cur,f.size));
-    const uH=new Uint8Array(80),uv=new DataView(uH.buffer);uv.setUint32(0,80+g2.length,false);
-    uH[4]=117;uH[5]=117;uH[6]=105;uH[7]=100;uH.set(M2,8);uH.set(salt,24);uH.set(iv1,56);uH.set(iv2,68);out.push(uH,g2);
-    const ftB=new Uint8Array(16),fv=new DataView(ftB.buffer);fv.setUint32(0,16,false);ftB[4]=102;ftB[5]=114;ftB[6]=101;ftB[7]=101;fv.setBigUint64(8,BigInt(f.size),false);out.push(ftB);
-    const bl=new Blob(out,{type:'video/mp4'}),nm=f.name.replace(/\.mp4$/i,'')+'_v2locked.mp4',a=document.createElement('a'),u=URL.createObjectURL(bl);
-    a.href=u;a.download=nm;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);
-    st(`Done in ${((performance.now()-t0)/1000).toFixed(2)}s! "${nm}" instant play ready hai (Header sirf ${fb(80+g2.length)}).`,'ok','lst');
-  }catch(e){st('Error: '+e.message,'err','lst')}finally{btn.disabled=false}
-}
-
-const openDB=()=>new Promise((res,rej)=>{const r=indexedDB.open('ia_pc_v2',1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('s'))d.createObjectStore('s');if(!d.objectStoreNames.contains('u'))d.createObjectStore('u')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
-const clrStore=(d,nm)=>d?new Promise(r=>{const t=d.transaction(nm,'readwrite');t.objectStore(nm).clear();t.oncomplete=t.onerror=r}):Promise.resolve();
-const putB=(d,a)=>new Promise((r,j)=>{const t=d.transaction('s','readwrite'),s=t.objectStore('s');a.forEach(x=>s.put(x.d,x.i));t.oncomplete=r;t.onerror=()=>j(t.error)});
-const getB=(d,idx)=>new Promise((r,j)=>{if(!idx.length)return r([]);const t=d.transaction('s','readonly'),s=t.objectStore('s'),o=new Array(idx.length);let n=0;idx.forEach((v,p)=>{const q=s.get(v);q.onsuccess=()=>{o[p]=q.result;if(++n===idx.length)r(o)};q.onerror=()=>j(q.error)})});
-const getK=(d,k)=>new Promise(r=>{const t=d.transaction('u','readonly').objectStore('u').get(k);t.onsuccess=()=>r(t.result);t.onerror=()=>r(null)});
-const putK=(d,k,v)=>new Promise(r=>{const t=d.transaction('u','readwrite');t.objectStore('u').put(v,k);t.oncomplete=r;t.onerror=r});
-
-function normIa(raw){let s=raw.trim();if(!s)throw new Error('IA URL daalein.');if(!/^https?:\/\//i.test(s))s=s.includes('archive.org')?('https://'+s):('https://archive.org/details/'+s);return new URL(s.replace(/^http:\/\//i,'https://'))}
-
-async function getCands(raw,sig){
-  const u=normIa(raw),dm=u.pathname.match(/^\/details\/([^\/]+)/),dl=u.pathname.match(/^\/(?:download|cors)\/([^\/]+)\/(.+)$/);
-  if(!dm&&!dl)return{cands:[u.toString()],sz:0,name:decodeURIComponent(u.pathname.split('/').pop()||'video.mp4')};
-  const id=decodeURIComponent((dm||dl)[1]),reqF=dl?decodeURIComponent(dl[2]):null;
-  let m;if(metaCache.id===id&&metaCache.m)m=metaCache.m;else{st('Metadata...');const r=await fetch(ru('https://archive.org/metadata/'+encodeURIComponent(id)),{signal:sig});if(!r.ok)throw new Error('HTTP '+r.status);m=await r.json();if(!m?.files)throw new Error('Item not found.');metaCache={id,m}}
-  const mp4s=m.files.filter(f=>/\.mp4$/i.test(f.name||''));if(!mp4s.length)throw new Error('Koi .mp4 nahi mila.');
-  const sel=document.getElementById('fSel'),prev=sel.value;sel.innerHTML='';
-  mp4s.forEach(f=>{const o=document.createElement('option');o.value=f.name;o.textContent=`${f.name} (${fb(Number(f.size||0))})`;sel.appendChild(o)});
-  const ch=(reqF&&mp4s.find(f=>f.name===reqF))||(prev&&mp4s.find(f=>f.name===prev))||mp4s.find(f=>/locked/i.test(f.name))||mp4s[0];
-  sel.value=ch.name;document.getElementById('fpw').style.display=mp4s.length>1?'block':'none';
-  const enc=ch.name.split('/').map(encodeURIComponent).join('/'),srvs=[];
-  [...(m.workable_servers||[]),m.server,m.d1,m.d2].forEach(s=>{if(s&&!srvs.includes(s))srvs.push(s)});
-  const cands=m.dir?srvs.map(s=>`https://${s}${m.dir}/${enc}`):[];cands.push(`https://archive.org/download/${encodeURIComponent(id)}/${enc}`);
-  return{cands,sz:Number(ch.size||0),name:ch.name};
-}
-
-async function probe(cands,sz,sig){
-  const errs=[];
-  for(const raw of cands){
-    try{
-      let tot=sz;
-      if(!tot){const p=await fetch(ru(raw)+'&s=0&e=15',{signal:sig});if(p.status!==200&&p.status!==206)throw new Error('HTTP '+p.status);const mt=(p.headers.get('content-range')||'').match(/\/(\d+)$/);if(!mt)throw new Error('No size');tot=Number(mt[1])}
-      const r=await fetch(ru(raw)+`&s=${tot-16}&e=${tot-1}`,{signal:sig});
-      if(r.status!==200&&r.status!==206)throw new Error('HTTP '+r.status);
-      const buf=new Uint8Array(await r.arrayBuffer());if(buf.byteLength!==16)throw new Error('Bad footer');
-      const fin=r.headers.get('X-Final-Url')||raw;
-      return{url:ru(fin),tot,foot:buf};
-    }catch(e){if(e.name==='AbortError')throw e;errs.push(new URL(raw).hostname+': '+e.message)}
-  }throw new Error('Node fail:\n'+errs.join('\n'));
-}
-
-async function fOne(url,a,b,sig){
-  const t0=performance.now();
-  const r=await fetch(url+`&s=${a}&e=${b}`,{signal:sig});
-  if(r.status!==200&&r.status!==206)throw new Error('HTTP '+r.status);
-  const u=new Uint8Array(await r.arrayBuffer());
-  if(u.byteLength!==(b-a+1))throw new Error('Short read '+u.byteLength);
-  const cs=r.headers.get('CF-Cache-Status');
-  if(cs)document.getElementById('tCdn').textContent='CF '+cs;
-  return{data:u,mbps:(u.byteLength*8)/(Math.max(.001,(performance.now()-t0)/1000)*1e6)};
-}
-
-async function fRange(url,a,b,sig,onP){
-  const total=b-a+1;if(total<=MAX_SLICE)return fOne(url,a,b,sig);
-  const pts=[];for(let p=0;p<total;p+=MAX_SLICE)pts.push({p,s:a+p,e:Math.min(b,a+p+MAX_SLICE-1)});
-  const out=new Uint8Array(total);let done=0,ms=0;
-  for(let i=0;i<pts.length;i+=3){
-    const bt=pts.slice(i,i+3),res=await Promise.all(bt.map(x=>fOne(url,x.s,x.e,sig)));
-    res.forEach((r,k)=>{out.set(r.data,bt[k].p);done+=r.data.byteLength;ms+=r.mbps});if(onP)onP(done,total);
-  }return{data:out,mbps:ms/pts.length};
-}
-
-function boxH(u,p){if(p+8>u.length)return null;const dv=new DataView(u.buffer,u.byteOffset+p,Math.min(16,u.length-p));let sz=dv.getUint32(0,false),hl=8;if(sz===1){if(p+16>u.length)return null;sz=Number(dv.getBigUint64(8,false));hl=16}return{type:String.fromCharCode(u[p+4],u[p+5],u[p+6],u[p+7]),sz,hl}}
-function patchMv(bytes,msz,mdO,mvO){
-  const cp=new Uint8Array(bytes),dv=new DataView(cp.buffer),cs=new Set(['moov','trak','mdia','minf','stbl']);
-  (function w(a,b){for(let p=a;p+8<=b;){let sz=dv.getUint32(p,false),h=8;const t=String.fromCharCode(cp[p+4],cp[p+5],cp[p+6],cp[p+7]);if(sz===1){sz=Number(dv.getBigUint64(p+8,false));h=16}else if(!sz)sz=b-p;if(sz<h||p+sz>b)break;if(cs.has(t))w(p+h,p+sz);else if(t==='stco'&&p+h+8<=p+sz){const c=dv.getUint32(p+h+4,false);for(let i=0;i<c;i++){const o=p+h+8+i*4;if(o+4>p+sz)break;const v=dv.getUint32(o,false);if(v>=mdO&&v<mvO)dv.setUint32(o,v+msz,false)}}else if(t==='co64'&&p+h+8<=p+sz){const c=dv.getUint32(p+h+4,false);for(let i=0;i<c;i++){const o=p+h+8+i*8;if(o+8>p+sz)break;const v=dv.getBigUint64(o,false);if(v>=BigInt(mdO)&&v<BigInt(mvO))dv.setBigUint64(o,v+BigInt(msz),false)}}p+=sz}})(0,cp.length);return cp;
-}
-
-async function stopAll(){
-  if(!S)return;S.aborted=true;S.ac?.abort();if(S.db){await clrStore(S.db,'s');S.db.close()}if(S.url)URL.revokeObjectURL(S.url);
-  const v=document.getElementById('vid');v.pause();v.removeAttribute('src');v.load();v.style.display='none';
-  document.getElementById('sBtn').style.display='none';document.getElementById('pBtn').disabled=false;
-  document.getElementById('tel').style.display='none';document.getElementById('tapBtn').style.display='none';pg(null);S=null;
-}
-
-async function go(){
-  const pb=document.getElementById('pBtn'),sbBtn=document.getElementById('sBtn');
-  try{
-    const raw=document.getElementById('iaUrl').value.trim(),pw=document.getElementById('pw').value;
-    if(!raw||!pw)return st('URL aur Password daalein.','err');
-    await stopAll();pb.disabled=true;sbBtn.style.display='block';
-    const ac=new AbortController();S={aborted:false,ac,db:null,url:null,mbps:5};
-
-    await waitMP4Box();
-    const{cands,sz,name}=await getCands(raw,ac.signal);
-    const{url,tot,foot}=await probe(cands,sz,ac.signal);
-    const fv=new DataView(foot.buffer,foot.byteOffset,16);
-    if(fv.getUint32(0,false)!==16||foot[4]!==102||foot[5]!==114||foot[6]!==101||foot[7]!==101)throw new Error('Locked MP4 nahi hai.');
-    const uOff=Number(fv.getBigUint64(8,false));if(uOff<0||uOff+80>=tot-16)throw new Error('Invalid offset.');
-
-    const db=await openDB();S.db=db;await clrStore(db,'s');
-    const cKey=name+'_'+tot+'_'+uOff,uLen=(tot-16)-uOff;
-    let uu=await getK(db,cKey);
-    if(!uu||uu.byteLength!==uLen){
-      st(`Lock header (${fb(uLen)})...`);
-      const uRes=await fRange(url,uOff,tot-17,ac.signal,(g,t)=>pg((g/t)*100));S.mbps=uRes.mbps||5;pg(null);uu=uRes.data;
-      if(uLen<=25*1048576){await clrStore(db,'u');await putK(db,cKey,uu)}
-    }
-
-    if(uu[4]!==117||uu[5]!==117||uu[6]!==105||uu[7]!==100)throw new Error('UUID missing.');
-    const isV1=M1.every((b,i)=>uu[8+i]===b),isV2=M2.every((b,i)=>uu[8+i]===b);
-    if(!isV1&&!isV2)throw new Error('Unknown lock.');
-
-    const keys=await deriveKeys(pw,uu.slice(24,56),'decrypt',isV2);
-    let man;try{man=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:uu.slice(56,68)},keys.gk1,await crypto.subtle.decrypt({name:'AES-GCM',iv:uu.slice(68,80)},keys.gk2,uu.subarray(80))))}catch{throw new Error('Galat password!')}
-    uu=null;
-
-    let patches=[],ramP=0,v2R=null;const mv=new DataView(man.buffer,man.byteOffset,man.byteLength);
-    if(isV1){
-      const cnt=mv.getUint32(0,false),useIdb=man.byteLength>IDB_LIM;let mp=4,bt=[];
-      for(let i=0;i<cnt;i++){
-        const o=Number(mv.getBigUint64(mp,false));mp+=8;const l=mv.getUint32(mp,false);mp+=4;const sl=man.slice(mp,mp+l);mp+=l;
-        if(useIdb&&l<=65536){patches.push({a:o,b:o+l,i,idb:1});bt.push({i,d:sl});if(bt.length>=256){await putB(db,bt);bt=[]}}else{patches.push({a:o,b:o+l,i,idb:0,d:sl});ramP+=l}
-      }if(bt.length)await putB(db,bt);patches.sort((x,y)=>x.a-y.a);
-    }else{
-      const pStart=Number(mv.getBigUint64(0,false)),pEnd=Number(mv.getBigUint64(8,false)),step=mv.getUint32(16,false),sliceLen=mv.getUint32(20,false);
-      const n1=man.slice(24,32),n2=man.slice(32,40),bCnt=mv.getUint32(40,false);let mp=44;
-      for(let i=0;i<bCnt;i++){const o=Number(mv.getBigUint64(mp,false));mp+=8;const l=mv.getUint32(mp,false);mp+=4;patches.push({a:o,b:o+l,i,idb:0,d:man.slice(mp,mp+l)});ramP+=l;mp+=l}
-      v2R={pStart,pEnd,step,sliceLen,n1,n2};
-    }man=null;
-
-    async function patchBuf(rs,buf){
-      const re=rs+buf.byteLength;
-      if(isV1){
-        const need=[];for(const p of patches){if(p.b<=rs)continue;if(p.a>=re)break;if(p.idb)need.push(p);else{const x=Math.max(rs,p.a),y=Math.min(re,p.b);buf.set(p.d.subarray(x-p.a,y-p.a),x-rs)}}
-        if(need.length){const ds=await getB(db,need.map(p=>p.i));need.forEach((p,k)=>{const x=Math.max(rs,p.a),y=Math.min(re,p.b);buf.set(ds[k].subarray(x-p.a,y-p.a),x-rs)})}
-      }else{
-        for(const p of patches){if(p.b<=rs||p.a>=re)continue;const x=Math.max(rs,p.a),y=Math.min(re,p.b);buf.set(p.d.subarray(x-p.a,y-p.a),x-rs)}
-        const{pStart,pEnd,step,sliceLen,n1,n2}=v2R;
-        if(re>pStart&&rs<pEnd){
-          const i0=Math.max(0,Math.floor((rs-pStart)/step)),i1=Math.floor((Math.min(re,pEnd)-1-pStart)/step),jobs=[];
-          for(let idx=i0;idx<=i1;idx++){
-            const sa=pStart+idx*step,sb=Math.min(pEnd,sa+sliceLen);if(sb<=rs||sa>=re)continue;
-            const ovA=Math.max(rs,sa),ovB=Math.min(re,sb);
-            jobs.push((async()=>{
-              const slB=(ovA===sa&&ovB===sb)?buf.subarray(sa-rs,sb-rs):(await fOne(url,sa,sb-1,ac.signal)).data;
-              const l1=await crypto.subtle.decrypt({name:'AES-CTR',counter:makeCtr(n2,idx),length:32},keys.ck2,slB);
-              const pl=new Uint8Array(await crypto.subtle.decrypt({name:'AES-CTR',counter:makeCtr(n1,idx),length:32},keys.ck1,l1));
-              buf.set(pl.subarray(ovA-sa,ovB-sa),ovA-rs);
-            })());
-          }if(jobs.length)await Promise.all(jobs);
-        }
-      }
-    }
-
-    st('Scanning specs...');
-    let cur=0,ftEnd=0,mvP=null,mdOff=-1,mdEnd=-1,heads=[];
-    while(cur<uOff){
-      const hit=patches.find(p=>p.a<=cur&&cur<p.b&&!p.idb);
-      let hb;if(hit&&hit.a===cur&&hit.d.length>=16)hb=hit.d.subarray(0,16);else{const r=await fRange(url,cur,Math.min(uOff-1,cur+63),ac.signal);hb=r.data;await patchBuf(cur,hb)}
-      const bh=boxH(hb,0);if(!bh||bh.sz<bh.hl)break;
-      if(bh.type==='moov'){if(hit&&hit.a===cur)mvP={o:cur,d:hit.d};else{const mr=await fRange(url,cur,cur+bh.sz-1,ac.signal);await patchBuf(cur,mr.data);mvP={o:cur,d:mr.data}}if(mdOff!==-1)break}
-      else if(bh.type==='mdat'){if(mdOff===-1){mdOff=cur;mdEnd=cur+bh.sz}if(mvP)break}
-      else{const br=await fRange(url,cur,cur+bh.sz-1,ac.signal);await patchBuf(cur,br.data);heads.push({o:cur,d:br.data});ftEnd=cur+bh.sz}
-      cur+=bh.sz;
-    }
-    if(!mvP||mdOff===-1)throw new Error('MP4 moov/mdat missing.');
-
-    const aft=mvP.o>mdOff,msz=mvP.d.byteLength,vMv=aft?ftEnd:mvP.o,vMd=aft?(ftEnd+msz):mdOff,shift=aft?msz:0,vEnd=mdEnd+shift;
-    const readyMv=aft?patchMv(mvP.d,msz,mdOff,mvP.o):mvP.d,mp4=MP4Box.createFile(false);
-    const info=await new Promise((res,rej)=>{mp4.onError=e=>rej(new Error('MP4Box: '+e));mp4.onReady=res;heads.forEach(h=>{const ab=h.d.buffer.slice(h.d.byteOffset,h.d.byteOffset+h.d.byteLength);ab.fileStart=h.o;mp4.appendBuffer(ab)});const ab=readyMv.buffer.slice(readyMv.byteOffset,readyMv.byteOffset+readyMv.byteLength);ab.fileStart=vMv;mp4.appendBuffer(ab)});
-
-    const vt=info.videoTracks[0],at=info.audioTracks[0],dur=info.duration/info.timescale;
-    const sp=[['File',name],['Duration',ft(dur)],['Size',fb(tot)],['Video',vt?`${vt.video.width}x${vt.video.height} (${vt.codec})`:'None'],['Audio',at?`${at.codec} • ${at.audio.sample_rate}Hz`:'None']];
-    const sg=document.getElementById('specs');sg.innerHTML=sp.map(([k,v])=>`<div class="sb"><div class="sk">${k}</div><div class="sv">${v}</div></div>`).join('');sg.style.display='grid';
-
-    const vid=document.getElementById('vid');vid.style.display='block';document.getElementById('tel').style.display='flex';
-    vid.onerror=()=>st('Decode error: '+(vid.error?.message||vid.error?.code||'Unsupported codec'),'err');
-    const ms=new MediaSource();S.url=URL.createObjectURL(ms);vid.src=S.url;
-    await new Promise(r=>ms.addEventListener('sourceopen',r,{once:true}));
-
-    const tks=[];let pqb=0;
-    for(const tr of [vt,at].filter(Boolean)){
-      const m1=`${tr.type==='audio'?'audio':'video'}/mp4; codecs="${tr.codec}"`,m2=`video/mp4; codecs="${tr.codec}"`;
-      const mime=MediaSource.isTypeSupported(m1)?m1:(MediaSource.isTypeSupported(m2)?m2:null);if(!mime)continue;
-      const sb=ms.addSourceBuffer(mime),ctx={trackId:tr.id,sb,q:[],busy:false,ft0:false};
-      sb.addEventListener('updateend',()=>drain(ctx));tks.push(ctx);
-      mp4.setSegmentOptions(tr.id,ctx,{nbSamples:tr.type==='video'?15:24});
-    }
-    if(!tks.length)throw new Error('Codec MSE mein supported nahi hai.');
-
-    function drain(c){if(!S||S.aborted||c.sb.updating||ms.readyState==='closed')return;const j=c.q.shift();if(!j){c.busy=false;return}c.busy=true;try{if(j.t==='a'){pqb=Math.max(0,pqb-j.b.byteLength);c.sb.appendBuffer(j.b)}else c.sb.remove(j.a,j.b)}catch{c.busy=false}}
-    const enqA=(c,b)=>{pqb+=b.byteLength;c.q.push({t:'a',b});if(!c.busy&&!c.sb.updating)drain(c)};
-    const enqR=(c,a,b)=>{if(b>a){c.q.push({t:'r',a,b});if(!c.busy&&!c.sb.updating)drain(c)}};
-
-    mp4.onSegment=(id,c,buf,sn)=>{mp4.releaseUsedSamples(id,sn);enqA(c,buf)};
-    mp4.initializeSegmentation().forEach(i=>enqA(i.user,i.buffer));
-    await new Promise(r=>{const t=setInterval(()=>{if(!S||S.aborted||tks.every(c=>!c.sb.updating&&!c.q.length)){clearInterval(t);r()}},20)});
-    mp4.start();
-
-    let nOff=vMd,fAc=null,playTried=false,eof=false,fed=0;
-    vid.onplaying=()=>document.getElementById('tapBtn').style.display='none';
-    vid.onseeking=()=>{
-      if(!S||S.aborted)return;const t=vid.currentTime;
-      for(let i=0;i<vid.buffered.length;i++)if(t>=vid.buffered.start(i)&&t<=vid.buffered.end(i))return;
-      fAc?.abort();tks.forEach(c=>{c.q=[];if(ms.readyState==='open'&&c.sb.updating)try{c.sb.abort()}catch{};c.busy=false});pqb=0;
-      nOff=Math.max(vMd,mp4.seek(t,true).offset);mp4.start();eof=false;
+    tabOnline.onclick = () => {
+      tabOnline.classList.add('active'); tabLocal.classList.remove('active');
+      onlineBox.classList.remove('hidden'); localBox.classList.add('hidden');
+    };
+    tabLocal.onclick = () => {
+      tabLocal.classList.add('active'); tabOnline.classList.remove('active');
+      localBox.classList.remove('hidden'); onlineBox.classList.add('hidden');
     };
 
-    while(S&&!S.aborted){
-      let ba=0;
-      if(vid.buffered.length>0){
-        if(!playTried&&vid.currentTime<vid.buffered.start(0)&&vid.buffered.start(0)<5)vid.currentTime=vid.buffered.start(0);
-        const ct=vid.currentTime||0;
-        for(let i=0;i<vid.buffered.length;i++){const bs=vid.buffered.start(i),be=vid.buffered.end(i);if(ct>=bs-1&&ct<=be){ba=Math.max(0,be-ct);break}}
-        for(const c of tks){if(!c.sb.updating&&c.sb.buffered.length){const s0=c.sb.buffered.start(0);if(ct-s0>16)enqR(c,s0,ct-10)}}
-        if(!playTried&&ba>=0.15){playTried=true;st(`Playing "${name}" (India Edge CDN)!`,'ok');vid.play().catch(()=>document.getElementById('tapBtn').style.display='block')}
-      }else if(fed>1048576&&tks.length>1&&tks.some(c=>c.sb.buffered.length>0)){
-        for(const c of tks){
-          if(c.sb.buffered.length===0&&!c.ft0){
-            c.ft0=true;const s0=mp4.getTrackById(c.trackId)?.samples?.[0]?.offset;
-            if(s0&&s0>nOff&&s0<vEnd){const ve0=Math.min(vEnd,s0+262144),cr0=await fRange(url,s0-shift,ve0-shift-1,ac.signal);await patchBuf(s0-shift,cr0.data);const ab0=cr0.data.buffer.slice(cr0.data.byteOffset,cr0.data.byteOffset+cr0.data.byteLength);ab0.fileStart=s0;mp4.appendBuffer(ab0)}
-          }
-        }
+    setInterval(() => {
+      watermark.style.top = (10 + Math.random() * 65) + '%';
+      watermark.style.left = (8 + Math.random() * 55) + '%';
+    }, 3500);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && ['s','u','S','U'].includes(e.key))) e.preventDefault();
+      if (!video.src) return;
+      if (e.code === 'Space' || e.key === 'k') { e.preventDefault(); togglePlay(); }
+      if (e.code === 'ArrowRight') video.currentTime += 5;
+      if (e.code === 'ArrowLeft') video.currentTime -= 5;
+      if (e.key === 'f' || e.key === 'F') toggleFs();
+      if (e.key === 'm' || e.key === 'M') toggleMute();
+    });
+
+    async function getActiveSW() {
+      if (!('serviceWorker' in navigator)) {
+        throw new Error('Service Worker sirf HTTPS (GitHub Pages) ya localhost par chalta hai.');
+      }
+      const reg = await navigator.serviceWorker.register('./sw.js');
+      await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller) {
+        await new Promise((resolve) => {
+          navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+          setTimeout(resolve, 1000);
+        });
+      }
+      return navigator.serviceWorker.controller || reg.active;
+    }
+
+    function sendSWMessage(sw, payload) {
+      return new Promise((resolve) => {
+        const mc = new MessageChannel();
+        mc.port1.onmessage = (e) => resolve(e.data);
+        sw.postMessage(payload, [mc.port2]);
+      });
+    }
+
+    function setMsg(text, type = '') {
+      msg.textContent = text;
+      msg.className = 'msg ' + type;
+    }
+
+    async function startOnlineStream() {
+      const rawUrl = urlInput.value.trim();
+      const key = keyInput.value;
+      const worker = workerInput.value.trim().replace(/\/+$/, '');
+      if (worker) localStorage.setItem('svid_cf_worker', worker);
+
+      if (!rawUrl || !key) return setMsg('Video URL aur Secret Key dono daalein!', 'err');
+
+      let finalUrl = rawUrl;
+      if (rawUrl.startsWith('https://archive.org/')) {
+        if (!worker) return setMsg('archive.org ke liye apna Cloudflare Worker (.workers.dev) URL daalein!', 'err');
+        finalUrl = `${worker}/?url=${encodeURIComponent(rawUrl)}`;
       }
 
-      const m=S.mbps,paused=vid.paused;
-      let chk=m<1.5?262144:m<5?524288:1048576,tBuf=paused?2:(m<1.5?8:m<5?12:18);
-      if(!playTried){chk=131072;tBuf=1.5}
+      try {
+        setMsg('🔄 Connecting & verifying stream...');
+        const sw = await getActiveSW();
+        const streamId = 'on_' + Date.now();
+        const res = await sendSWMessage(sw, { type: 'REGISTER_URL', id: streamId, url: finalUrl, key });
+        if (!res.ok) return setMsg('❌ ' + res.error, 'err');
 
-      const mem=ramP+pqb+(ba*(info.tracks.reduce((a,t)=>a+(t.bitrate||2e6),0)/8));
-      document.getElementById('tS').textContent=m.toFixed(2)+' Mbps';
-      document.getElementById('tC').textContent=fb(chk);
-      document.getElementById('tB').textContent=ba.toFixed(1)+'s';
-      document.getElementById('tM').textContent=(mem/1048576).toFixed(1)+'/95 MB';
-
-      if(eof){if(ms.readyState==='open'&&tks.every(c=>!c.sb.updating&&!c.q.length))try{ms.endOfStream()}catch{};await new Promise(r=>setTimeout(r,400));continue}
-      if(ba>=tBuf||mem>=MEM_CAP||pqb>16777216){await new Promise(r=>setTimeout(r,250));continue}
-      if(nOff>=vEnd){mp4.flush();eof=true;continue}
-
-      const ve=Math.min(vEnd,nOff+chk),rs=nOff-shift,re=ve-shift;
-      fAc=new AbortController();const lnk=()=>fAc.abort();ac.signal.addEventListener('abort',lnk,{once:true});
-      try{
-        const cr=await fRange(url,rs,re-1,fAc.signal);S.mbps=.7*S.mbps+.3*cr.mbps;await patchBuf(rs,cr.data);
-        const ab=cr.data.buffer.slice(cr.data.byteOffset,cr.data.byteOffset+cr.data.byteLength);ab.fileStart=nOff;mp4.appendBuffer(ab);nOff=ve;fed+=cr.data.byteLength;
-      }catch(fe){if(fe.name!=='AbortError')throw fe}finally{ac.signal.removeEventListener('abort',lnk)}
+        video.src = './svid-stream/' + streamId;
+        controls.classList.add('visible');
+        await video.play();
+        setMsg(`✅ Online Streaming (${(res.origSize / 1048576).toFixed(1)} MB) — Bina download turant play ho raha hai!`, 'ok');
+      } catch (err) {
+        setMsg('❌ ' + err.message, 'err');
+      }
     }
-  }catch(e){if(e.name!=='AbortError')st(e.message,'err')}finally{pb.disabled=false}
-}
-</script>
+
+    async function startLocalFile(file) {
+      const key = keyInput.value;
+      if (!file || !key) return setMsg('File aur Secret Key dono zaroori hain!', 'err');
+      try {
+        setMsg('🔓 Opening saved file from device...');
+        const sw = await getActiveSW();
+        const streamId = 'loc_' + Date.now();
+        const res = await sendSWMessage(sw, { type: 'REGISTER_LOCAL', id: streamId, file, key });
+        if (!res.ok) return setMsg('❌ ' + res.error, 'err');
+
+        video.src = './svid-stream/' + streamId;
+        controls.classList.add('visible');
+        await video.play();
+        setMsg(`✅ Playing "${file.name}" (${(res.origSize / 1048576).toFixed(1)} MB)`, 'ok');
+      } catch (err) {
+        setMsg('❌ ' + err.message, 'err');
+      }
+    }
+
+    playStreamBtn.onclick = startOnlineStream;
+    localDrop.onclick = () => fileInput.click();
+    localDrop.ondragover = (e) => { e.preventDefault(); localDrop.classList.add('drag'); };
+    localDrop.ondragleave = () => localDrop.classList.remove('drag');
+    localDrop.ondrop = (e) => { e.preventDefault(); localDrop.classList.remove('drag'); if (e.dataTransfer.files[0]) startLocalFile(e.dataTransfer.files[0]); };
+    fileInput.onchange = () => { if (fileInput.files[0]) startLocalFile(fileInput.files[0]); };
+
+    const togglePlay = () => video.src && (video.paused ? video.play() : video.pause());
+    const toggleMute = () => { video.muted = !video.muted; document.getElementById('muteBtn').textContent = video.muted ? '🔇' : '🔊'; };
+    const toggleFs = () => document.fullscreenElement ? document.exitFullscreen() : playerBox.requestFullscreen();
+
+    document.getElementById('overlayClick').onclick = togglePlay;
+    playBtn.onclick = togglePlay;
+    document.getElementById('muteBtn').onclick = toggleMute;
+    document.getElementById('fsBtn').onclick = toggleFs;
+    volBar.oninput = () => { video.volume = volBar.value; video.muted = (volBar.value == 0); };
+    speedSel.onchange = () => { video.playbackRate = parseFloat(speedSel.value); };
+
+    const fmt = (s) => !isFinite(s) ? '00:00' : `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+    video.onplay = () => playBtn.textContent = '⏸️';
+    video.onpause = () => playBtn.textContent = '▶️';
+    video.ontimeupdate = () => {
+      if (!video.duration) return;
+      seekBar.value = (video.currentTime / video.duration) * 100;
+      timeText.textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
+    };
+    seekBar.oninput = () => { if (video.duration) video.currentTime = (seekBar.value / 100) * video.duration; };
+  </script>
 </body>
 </html>
