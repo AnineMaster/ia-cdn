@@ -60,7 +60,7 @@
       <div class="tel" id="tel">
         <span>CDN: <b id="tCdn">-</b></span>
         <span>Speed: <b id="tS">0 Mbps</b></span>
-        <span>Chunk: <b id="tC">128 KB</b></span>
+        <span>Chunk: <b id="tC">256 KB</b></span>
         <span>Buf: <b id="tB">0s</b></span>
         <span class="m">RAM: <b id="tM">0/95 MB</b></span>
       </div>
@@ -319,7 +319,7 @@ async function go(videoOnly=false){
     if(!mvP||mdOff===-1)throw new Error('MP4 moov/mdat missing.');
 
     const aft=mvP.o>mdOff,msz=mvP.d.byteLength,vMv=aft?ftEnd:mvP.o,vMd=aft?(ftEnd+msz):mdOff,shift=aft?msz:0,vEnd=mdEnd+shift;
-    const readyMv=aft?patchMv(mvP.d,msz,mdOff,mvP.o):mvP.d,mp4=MP4Box.createFile(false);
+    const readyMv=aft?patchMv(mvP.d,msz,mdOff,mvP.o):mvP.d,mp4=MP4Box.createFile();
     const info=await new Promise((res,rej)=>{mp4.onError=e=>rej(new Error('MP4Box: '+e));mp4.onReady=res;heads.forEach(h=>{const ab=h.d.buffer.slice(h.d.byteOffset,h.d.byteOffset+h.d.byteLength);ab.fileStart=h.o;mp4.appendBuffer(ab)});const ab=readyMv.buffer.slice(readyMv.byteOffset,readyMv.byteOffset+readyMv.byteLength);ab.fileStart=vMv;mp4.appendBuffer(ab)});
 
     const vt=info.videoTracks[0],at=info.audioTracks[0],dur=info.duration/info.timescale;
@@ -330,7 +330,7 @@ async function go(videoOnly=false){
     vid.onerror=()=>{
       const msg=vid.error?.message||String(vid.error?.code||'Decode error');
       if(!videoOnly&&/audio/i.test(msg)){
-        st('Source MP4 mein audio packet error tha — Video-Only mode mein auto-play ho raha hai...','ok');
+        st('Audio packet issue — Video-Only mode mein auto-play ho raha hai...','ok');
         setTimeout(()=>go(true),200);return;
       }
       st('Decode error: '+msg,'err');
@@ -345,7 +345,7 @@ async function go(videoOnly=false){
       const mime=MediaSource.isTypeSupported(m1)?m1:(MediaSource.isTypeSupported(m2)?m2:null);if(!mime)continue;
       const sb=ms.addSourceBuffer(mime),ctx={trackId:tr.id,sb,q:[],busy:false,ft0:false};
       sb.addEventListener('updateend',()=>drain(ctx));tks.push(ctx);
-      mp4.setSegmentOptions(tr.id,ctx,{nbSamples:tr.type==='video'?15:60});
+      mp4.setSegmentOptions(tr.id,ctx,{nbSamples:tr.type==='video'?24:48});
     }
     if(!tks.length)throw new Error('Codec MSE mein supported nahi hai.');
 
@@ -386,7 +386,7 @@ async function go(videoOnly=false){
 
       const m=S.mbps,paused=vid.paused;
       let chk=m<1.5?262144:m<5?524288:1048576,tBuf=paused?2:(m<1.5?8:m<5?12:18);
-      if(!playTried){chk=131072;tBuf=1.5}
+      if(!playTried){chk=262144;tBuf=2}
 
       const mem=ramP+pqb+(ba*(info.tracks.reduce((a,t)=>a+(t.bitrate||2e6),0)/8));
       document.getElementById('tS').textContent=m.toFixed(2)+' Mbps';
