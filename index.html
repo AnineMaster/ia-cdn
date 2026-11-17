@@ -263,6 +263,13 @@ function patchMv(bytes,msz,mdO,mvO){
   (function w(a,b){for(let p=a;p+8<=b;){let sz=dv.getUint32(p,false),h=8;const t=String.fromCharCode(cp[p+4],cp[p+5],cp[p+6],cp[p+7]);if(sz===1){sz=Number(dv.getBigUint64(p+8,false));h=16}else if(!sz)sz=b-p;if(sz<h||p+sz>b)break;if(cs.has(t))w(p+h,p+sz);else if(t==='stco'&&p+h+8<=p+sz){const c=dv.getUint32(p+h+4,false);for(let i=0;i<c;i++){const o=p+h+8+i*4;if(o+4>p+sz)break;const v=dv.getUint32(o,false);if(v>=mdO&&v<mvO)dv.setUint32(o,v+msz,false)}}else if(t==='co64'&&p+h+8<=p+sz){const c=dv.getUint32(p+h+4,false);for(let i=0;i<c;i++){const o=p+h+8+i*8;if(o+8>p+sz)break;const v=dv.getBigUint64(o,false);if(v>=BigInt(mdO)&&v<BigInt(mvO))dv.setBigUint64(o,v+BigInt(msz),false)}}p+=sz}})(0,cp.length);return cp;
 }
 
+function getSeekOffset(mp4,t,fallback){
+  const sk=mp4.seek(t,true);
+  if(typeof sk==='number')return sk;
+  if(sk&&typeof sk.offset==='number')return sk.offset;
+  return fallback;
+}
+
 function onQualityChange(){
   if(!document.getElementById('pw').value)return;
   if(!S){go(false);return}
@@ -363,7 +370,7 @@ async function unlockRendition(rMeta,pw,db,sig,showProg){
   const aft=mvP.o>mdOff,msz=mvP.d.byteLength,vMv=aft?ftEnd:mvP.o,vMd=aft?(ftEnd+msz):mdOff,shift=aft?msz:0,vEnd=mdEnd+shift;
   const readyMv=aft?patchMv(mvP.d,msz,mdOff,mvP.o):mvP.d;
 
-  const mp4=MP4Box.createFile();
+  const mp4=MP4Box.createFile(true);
   const info=await new Promise((res,rej)=>{
     mp4.onError=e=>rej(new Error('MP4Box: '+e));mp4.onReady=res;
     heads.forEach(h=>{const ab=h.d.buffer.slice(h.d.byteOffset,h.d.byteOffset+h.d.byteLength);ab.fileStart=h.o;mp4.appendBuffer(ab)});
@@ -485,12 +492,12 @@ async function go(videoOnly=false){
         rs.mp4.releaseUsedSamples(id,sn);
         if(S&&S.active===rMeta)enqA(ctx,buf);
       };
-      const inits=rs.mp4.initializeSegmentation();
-      inits.forEach(i=>enqA(i.user,i.buffer));
+      const rawInits=rs.mp4.initializeSegmentation('per-track');
+      const inits=Array.isArray(rawInits)?rawInits:[rawInits];
+      inits.forEach(i=>{if(i&&i.user&&i.buffer)enqA(i.user,i.buffer)});
       rs.mp4.start();
       if(startAtTime>0){
-        const sk=rs.mp4.seek(startAtTime,true);
-        return Math.max(rs.vMd,sk.offset);
+        return Math.max(rs.vMd,getSeekOffset(rs.mp4,startAtTime,rs.vMd));
       }
       return rs.vMd;
     }
@@ -505,7 +512,7 @@ async function go(videoOnly=false){
       for(let i=0;i<vid.buffered.length;i++)if(t>=vid.buffered.start(i)&&t<=vid.buffered.end(i))return;
       fAc?.abort();tks.forEach(c=>{c.q=[];if(ms.readyState==='open'&&c.sb.updating)try{c.sb.abort()}catch{};c.busy=false});pqb=0;
       const rs=S.active.state;
-      nOff=Math.max(rs.vMd,rs.mp4.seek(t,true).offset);rs.mp4.start();eof=false;
+      nOff=Math.max(rs.vMd,getSeekOffset(rs.mp4,t,rs.vMd));rs.mp4.start();eof=false;
     };
 
     document.getElementById('tQ').textContent=(S.autoAbr?'Auto: ':'')+startR.label;
