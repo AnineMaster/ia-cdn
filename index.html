@@ -82,8 +82,8 @@
     </div>
 
     <div class="inputs" id="onlineBox">
-      <input type="text" id="workerInput" placeholder="Cloudflare Worker URL (https://xxx.workers.dev)" class="grow" />
-      <input type="text" id="urlInput" placeholder="https://archive.org/download/.../video_locked.mp4" class="grow" />
+      <input type="text" id="workerInput" placeholder="Worker URL (optional agar _worker.js uploaded hai)" class="grow" />
+      <input type="text" id="urlInput" placeholder="https://archive.org/details/... ya /download/...mp4" class="grow" />
       <button class="btn" id="playStreamBtn">▶ Stream Online</button>
     </div>
 
@@ -168,17 +168,24 @@
 
     async function getActiveSW() {
       if (!('serviceWorker' in navigator)) {
-        throw new Error('Service Worker sirf HTTPS (GitHub Pages) ya localhost par chalta hai.');
+        throw new Error('Service Worker sirf HTTPS par chalta hai.');
       }
-      const reg = await navigator.serviceWorker.register('./sw.js');
-      await navigator.serviceWorker.ready;
-      if (!navigator.serviceWorker.controller) {
-        await new Promise((resolve) => {
-          navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
-          setTimeout(resolve, 1000);
-        });
+      try {
+        const reg = await navigator.serviceWorker.register('./sw.js');
+        await navigator.serviceWorker.ready;
+        if (!navigator.serviceWorker.controller) {
+          await new Promise((resolve) => {
+            navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+            setTimeout(resolve, 1000);
+          });
+        }
+        return navigator.serviceWorker.controller || reg.active;
+      } catch (e) {
+        if (String(e.message).includes('MIME')) {
+          throw new Error('sw.js file server par missing hai (ya sw.js.txt save ho gayi hai)! Exact "sw.js" naam se upload karein.');
+        }
+        throw e;
       }
-      return navigator.serviceWorker.controller || reg.active;
     }
 
     function sendSWMessage(sw, payload) {
@@ -194,21 +201,44 @@
       msg.className = 'msg ' + type;
     }
 
+    function makeProxyUrl(workerBase, target) {
+      if (workerBase.endsWith('/proxy')) return `${workerBase}?url=${encodeURIComponent(target)}`;
+      return `${workerBase}/?url=${encodeURIComponent(target)}`;
+    }
+
     async function startOnlineStream() {
-      const rawUrl = urlInput.value.trim();
+      let rawUrl = urlInput.value.trim();
       const key = keyInput.value;
-      const worker = workerInput.value.trim().replace(/\/+$/, '');
+      let worker = workerInput.value.trim().replace(/\/+$/, '');
       if (worker) localStorage.setItem('svid_cf_worker', worker);
+      else worker = window.location.origin + '/proxy'; // Built-in _worker.js fallback
 
       if (!rawUrl || !key) return setMsg('Video URL aur Secret Key dono daalein!', 'err');
 
-      let finalUrl = rawUrl;
-      if (rawUrl.startsWith('https://archive.org/')) {
-        if (!worker) return setMsg('archive.org ke liye apna Cloudflare Worker (.workers.dev) URL daalein!', 'err');
-        finalUrl = `${worker}/?url=${encodeURIComponent(rawUrl)}`;
-      }
-
       try {
+        // Agar archive.org/details/ID paste kiya gaya ho toh asli .mp4 file auto-find karein
+        if (rawUrl.includes('archive.org/details/')) {
+          const m = rawUrl.match(/archive\.org\/details\/([^/?#]+)/);
+          if (m) {
+            setMsg('🔍 Archive.org se locked video file dhoondh raha hoon...');
+            const metaRes = await fetch(makeProxyUrl(worker, `https://archive.org/metadata/${m[1]}`));
+            if (!metaRes.ok) throw new Error('Archive metadata nahi mila — Worker/_worker.js check karein.');
+            const metaJson = await metaRes.json();
+            const files = metaJson.files || [];
+            const targetFile =
+              files.find(f => f.name && f.name.endsWith('_locked.mp4')) ||
+              files.find(f => f.source === 'original' && f.name && f.name.toLowerCase().endsWith('.mp4'));
+            if (!targetFile) return setMsg('❌ Is Archive item mein koi locked .mp4 file nahi mili!', 'err');
+            const encodedPath = targetFile.name.split('/').map(encodeURIComponent).join('/');
+            rawUrl = `https://archive.org/download/${m[1]}/${encodedPath}`;
+          }
+        }
+
+        let finalUrl = rawUrl;
+        if (rawUrl.startsWith('https://archive.org/')) {
+          finalUrl = makeProxyUrl(worker, rawUrl);
+        }
+
         setMsg('🔄 Connecting & verifying stream...');
         const sw = await getActiveSW();
         const streamId = 'on_' + Date.now();
@@ -218,7 +248,7 @@
         video.src = './svid-stream/' + streamId;
         controls.classList.add('visible');
         await video.play();
-        setMsg(`✅ Online Streaming (${(res.origSize / 1048576).toFixed(1)} MB) — Bina download turant play ho raha hai!`, 'ok');
+        setMsg(`✅ Online Streaming (${(res.origSize / 1048576).toFixed(1)} MB) — Bina download play ho raha hai!`, 'ok');
       } catch (err) {
         setMsg('❌ ' + err.message, 'err');
       }
