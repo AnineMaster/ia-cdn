@@ -46,11 +46,11 @@
     <div id="pn-play" class="pn on">
       <label>1. Internet Archive URL ya Item ID</label>
       <input type="url" id="iaUrl" placeholder="https://archive.org/details/..." />
-      <div id="fpw"><label>Video Select Karein</label><select id="fSel" onchange="if(document.getElementById('pw').value)go()"></select></div>
+      <div id="fpw"><label>Video Select Karein</label><select id="fSel" onchange="if(document.getElementById('pw').value)go(false)"></select></div>
       <label>2. Password</label>
-      <input type="password" id="pw" placeholder="Password daalein" onkeydown="if(event.key==='Enter')go()" />
+      <input type="password" id="pw" placeholder="Password daalein" onkeydown="if(event.key==='Enter')go(false)" />
       <div class="row">
-        <button class="btn" id="pBtn" onclick="go()">Play Now</button>
+        <button class="btn" id="pBtn" onclick="go(false)">Play Now</button>
         <button class="btn stop" id="sBtn" onclick="stopAll()">Stop</button>
       </div>
       <div class="pw" id="pwB"><div class="pb" id="pBar"></div></div>
@@ -235,7 +235,7 @@ async function stopAll(){
   document.getElementById('tel').style.display='none';document.getElementById('tapBtn').style.display='none';pg(null);S=null;
 }
 
-async function go(){
+async function go(videoOnly=false){
   const pb=document.getElementById('pBtn'),sbBtn=document.getElementById('sBtn');
   try{
     const raw=document.getElementById('iaUrl').value.trim(),pw=document.getElementById('pw').value;
@@ -323,21 +323,29 @@ async function go(){
     const info=await new Promise((res,rej)=>{mp4.onError=e=>rej(new Error('MP4Box: '+e));mp4.onReady=res;heads.forEach(h=>{const ab=h.d.buffer.slice(h.d.byteOffset,h.d.byteOffset+h.d.byteLength);ab.fileStart=h.o;mp4.appendBuffer(ab)});const ab=readyMv.buffer.slice(readyMv.byteOffset,readyMv.byteOffset+readyMv.byteLength);ab.fileStart=vMv;mp4.appendBuffer(ab)});
 
     const vt=info.videoTracks[0],at=info.audioTracks[0],dur=info.duration/info.timescale;
-    const sp=[['File',name],['Duration',ft(dur)],['Size',fb(tot)],['Video',vt?`${vt.video.width}x${vt.video.height} (${vt.codec})`:'None'],['Audio',at?`${at.codec} • ${at.audio.sample_rate}Hz`:'None']];
+    const sp=[['File',name],['Duration',ft(dur)],['Size',fb(tot)],['Video',vt?`${vt.video.width}x${vt.video.height} (${vt.codec})`:'None'],['Audio',videoOnly?'Skipped (Auto-Fix)':(at?`${at.codec} • ${at.audio.sample_rate}Hz`:'None')]];
     const sg=document.getElementById('specs');sg.innerHTML=sp.map(([k,v])=>`<div class="sb"><div class="sk">${k}</div><div class="sv">${v}</div></div>`).join('');sg.style.display='grid';
 
     const vid=document.getElementById('vid');vid.style.display='block';document.getElementById('tel').style.display='flex';
-    vid.onerror=()=>st('Decode error: '+(vid.error?.message||vid.error?.code||'Unsupported codec'),'err');
+    vid.onerror=()=>{
+      const msg=vid.error?.message||String(vid.error?.code||'Decode error');
+      if(!videoOnly&&/audio/i.test(msg)){
+        st('Source MP4 mein audio packet error tha — Video-Only mode mein auto-play ho raha hai...','ok');
+        setTimeout(()=>go(true),200);return;
+      }
+      st('Decode error: '+msg,'err');
+    };
     const ms=new MediaSource();S.url=URL.createObjectURL(ms);vid.src=S.url;
     await new Promise(r=>ms.addEventListener('sourceopen',r,{once:true}));
 
     const tks=[];let pqb=0;
-    for(const tr of [vt,at].filter(Boolean)){
+    const trList=videoOnly?[vt].filter(Boolean):[vt,at].filter(Boolean);
+    for(const tr of trList){
       const m1=`${tr.type==='audio'?'audio':'video'}/mp4; codecs="${tr.codec}"`,m2=`video/mp4; codecs="${tr.codec}"`;
       const mime=MediaSource.isTypeSupported(m1)?m1:(MediaSource.isTypeSupported(m2)?m2:null);if(!mime)continue;
       const sb=ms.addSourceBuffer(mime),ctx={trackId:tr.id,sb,q:[],busy:false,ft0:false};
       sb.addEventListener('updateend',()=>drain(ctx));tks.push(ctx);
-      mp4.setSegmentOptions(tr.id,ctx,{nbSamples:tr.type==='video'?15:24});
+      mp4.setSegmentOptions(tr.id,ctx,{nbSamples:tr.type==='video'?15:60});
     }
     if(!tks.length)throw new Error('Codec MSE mein supported nahi hai.');
 
@@ -366,7 +374,7 @@ async function go(){
         const ct=vid.currentTime||0;
         for(let i=0;i<vid.buffered.length;i++){const bs=vid.buffered.start(i),be=vid.buffered.end(i);if(ct>=bs-1&&ct<=be){ba=Math.max(0,be-ct);break}}
         for(const c of tks){if(!c.sb.updating&&c.sb.buffered.length){const s0=c.sb.buffered.start(0);if(ct-s0>16)enqR(c,s0,ct-10)}}
-        if(!playTried&&ba>=0.15){playTried=true;st(`Playing "${name}" (India Edge CDN)!`,'ok');vid.play().catch(()=>document.getElementById('tapBtn').style.display='block')}
+        if(!playTried&&ba>=0.15){playTried=true;st(`Playing "${name}"${videoOnly?' (Video-Only)':''}!`,'ok');vid.play().catch(()=>document.getElementById('tapBtn').style.display='block')}
       }else if(fed>1048576&&tks.length>1&&tks.some(c=>c.sb.buffered.length>0)){
         for(const c of tks){
           if(c.sb.buffered.length===0&&!c.ft0){
