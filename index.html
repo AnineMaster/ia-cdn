@@ -4,8 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IA Edge CDN Multi-Quality ABR Player + V2 Locker</title>
-  <script src="https://cdn.jsdelivr.net/npm/mp4box@2.4.1/dist/mp4box.all.min.js"
-    onerror="var s=document.createElement('script');s.src='https://unpkg.com/mp4box@2.4.1/dist/mp4box.all.min.js';document.head.appendChild(s);"></script>
+  <script type="module">
+    const setMod = (m) => { window.MP4Box = m.createFile ? m : (m.default || m); };
+    try {
+      setMod(await import('https://cdn.jsdelivr.net/npm/mp4box@2.4.1/dist/mp4box.all.mjs'));
+    } catch {
+      try {
+        setMod(await import('https://unpkg.com/mp4box@2.4.1/dist/mp4box.all.mjs'));
+      } catch {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js';
+        document.head.appendChild(s);
+      }
+    }
+  </script>
   <style>
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
     body{margin:0;min-height:100vh;background:#060913;color:#e2e8f0;padding:14px}
@@ -97,7 +109,7 @@ const ft=s=>!isFinite(s)?'0:00':(s>=3600?Math.floor(s/3600)+':':'')+String(Math.
 const ru=u=>'/cdn?url='+encodeURIComponent(u);
 
 function manualPlay(){const v=document.getElementById('vid');if(v.buffered.length&&v.currentTime<v.buffered.start(0))v.currentTime=v.buffered.start(0);v.play().then(()=>document.getElementById('tapBtn').style.display='none').catch(()=>{})}
-async function waitMP4Box(){for(let i=0;i<50;i++){if(typeof MP4Box!=='undefined')return;await new Promise(r=>setTimeout(r,100))}throw new Error('MP4Box load nahi hui, refresh karein.')}
+async function waitMP4Box(){for(let i=0;i<100;i++){if(typeof MP4Box!=='undefined'&&MP4Box.createFile)return;await new Promise(r=>setTimeout(r,100))}throw new Error('MP4Box load nahi hui, refresh karein.')}
 function makeCtr(n8,idx){const c=new Uint8Array(16);c.set(n8,0);new DataView(c.buffer).setUint32(8,idx,false);return c}
 
 async function deriveKeys(pw,salt,usage,needCtr){
@@ -179,7 +191,7 @@ function normIa(raw){let s=raw.trim();if(!s)throw new Error('IA URL daalein.');i
 
 async function discoverRenditions(raw,sig){
   const u=normIa(raw),dm=u.pathname.match(/^\/details\/([^\/]+)/),dl=u.pathname.match(/^\/(?:download|cors)\/([^\/]+)\/(.+)$/);
-  if(!dm&&!dl)return[{name:decodeURIComponent(u.pathname.split('/').pop()||'video.mp4'),sz:0,cands:[u.toString()]}];
+  if(!dm&&!dl)return[{idx:0,name:decodeURIComponent(u.pathname.split('/').pop()||'video.mp4'),sz:0,cands:[u.toString()]}];
   const id=decodeURIComponent((dm||dl)[1]),reqF=dl?decodeURIComponent(dl[2]):null;
   let m;if(metaCache.id===id&&metaCache.m)m=metaCache.m;else{st('Item metadata scan ho raha hai...');const r=await fetch(ru('https://archive.org/metadata/'+encodeURIComponent(id)),{signal:sig});if(!r.ok)throw new Error('HTTP '+r.status);m=await r.json();if(!m?.files)throw new Error('Item not found.');metaCache={id,m}}
   const mp4s=m.files.filter(f=>/\.mp4$/i.test(f.name||'')).sort((a,b)=>Number(a.size||0)-Number(b.size||0));
@@ -365,7 +377,7 @@ async function unlockRendition(rMeta,pw,db,sig,showProg){
   rMeta.estMbps=dur>0?(tot*8)/(dur*1e6):2;
   rMeta.label=label;
 
-  rMeta.state={url,tot,uOff,aft,vMd,shift,vEnd,mp4,info,vt,at,patchBuf,ramP,initDone:false};
+  rMeta.state={url,tot,uOff,aft,vMd,shift,vEnd,mp4,info,vt,at,patchBuf,ramP};
   return rMeta.state;
 }
 
@@ -402,7 +414,6 @@ async function go(videoOnly=false){
     const selVal=document.getElementById('fSel').value;
     S.autoAbr=(selVal==='__AUTO__'&&renditions.length>1);
 
-    // Start with smallest rendition when Auto ABR is selected for instant start!
     let startR=S.autoAbr?renditions[0]:(renditions.find(r=>r.name===selVal)||renditions[0]);
 
     const db=await openDB();S.db=db;await clrStore(db,'s');
@@ -410,7 +421,6 @@ async function go(videoOnly=false){
     S.active=startR;
     lastNative={url:st0.url,uOff:st0.uOff,patchBuf:st0.patchBuf,name:startR.name};
 
-    // Estimate bitrates for all renditions using first rendition's duration!
     const baseDur=startR.dur||60;
     renditions.forEach(r=>{if(!r.estMbps)r.estMbps=(r.sz*8)/(baseDur*1e6)});
 
@@ -515,11 +525,9 @@ async function go(videoOnly=false){
       let chk=m<1.5?262144:m<5?524288:1048576,tBuf=paused?2:(m<1.5?8:m<5?12:18);
       if(!playTried){chk=262144;tBuf=2}
 
-      // --- REAL MULTI-QUALITY AUTO-SWITCH ABR ---
       if(playTried&&!switching&&(S.manualTarget||(S.autoAbr&&!abrDisabledByDiffDur&&renditions.length>1))){
         let targetR=S.manualTarget;
         if(!targetR&&S.autoAbr){
-          // Pick best quality whose bitrate <= 75% of current Mbps
           let best=renditions[0];
           for(const r of renditions){if(r.estMbps<=m*0.75)best=r}
           if(best.idx>curR.idx&&ba>=6){upStreak++;if(upStreak>=2)targetR=best}
@@ -530,7 +538,7 @@ async function go(videoOnly=false){
           switching=true;S.manualTarget=null;upStreak=0;
           try{
             st(`ABR switching quality → ${fb(targetR.sz)}...`,'ok');
-            const nSt=await unlockRendition(targetR,pw,db,ac.signal,false);
+            await unlockRendition(targetR,pw,db,ac.signal,false);
             if(Math.abs(targetR.dur-curR.dur)>5){
               abrDisabledByDiffDur=true;
               st('Is item ki files alag videos hain (same duration nahi) — current video par locked hai.','ok');
