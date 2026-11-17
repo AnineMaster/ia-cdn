@@ -263,17 +263,17 @@ function onQualityChange(){
   if(val==='__AUTO__'){S.autoAbr=true;return}
   S.autoAbr=false;
   const target=S.renditions.find(r=>r.name===val);
-  if(target&&S.active&&target.name!==S.active.name){
-    S.manualTarget=target;
-  }
+  if(target&&S.active&&target.name!==S.active.name){S.manualTarget=target}
 }
 
-async function stopAll(){
-  if(!S)return;S.aborted=true;S.ac?.abort();if(S.db){await clrStore(S.db,'s');S.db.close()}if(S.url)URL.revokeObjectURL(S.url);
+async function stopAll(keepDb=false){
+  if(!S)return;S.aborted=true;S.ac?.abort();
+  if(S.db&&!keepDb){await clrStore(S.db,'s');S.db.close()}
+  if(S.url)URL.revokeObjectURL(S.url);
   const v=document.getElementById('vid');v.pause();v.removeAttribute('src');v.load();v.style.display='none';
   document.getElementById('sBtn').style.display='none';document.getElementById('pBtn').disabled=false;
   document.getElementById('tel').style.display='none';document.getElementById('tapBtn').style.display='none';
-  document.getElementById('natBtn').style.display='none';pg(null);S=null;
+  document.getElementById('natBtn').style.display='none';pg(null);if(!keepDb)S=null;
 }
 
 async function unlockRendition(rMeta,pw,db,sig,showProg){
@@ -370,15 +370,16 @@ async function unlockRendition(rMeta,pw,db,sig,showProg){
   rMeta.estMbps=dur>0?(tot*8)/(dur*1e6):2;
   rMeta.label=label;
 
-  rMeta.state={url,tot,uOff,aft,vMd,shift,vEnd,mp4,info,vt,at,patchBuf,ramP};
+  rMeta.state={url,tot,uOff,aft,vMd,mdOff,shift,vEnd,mp4,info,vt,at,patchBuf,ramP,isV1,patches};
   return rMeta.state;
 }
 
 async function playNativeFallback(){
   if(!lastNative)return;
   const{url,uOff,patchBuf,name}=lastNative;
-  await stopAll();
-  const ac=new AbortController();S={aborted:false,ac,db:null,url:null,mbps:5};
+  const keptDb=S?S.db:null;
+  await stopAll(true);
+  const ac=new AbortController();S={aborted:false,ac,db:keptDb,url:null,mbps:5};
   document.getElementById('sBtn').style.display='block';
   try{
     st(`Direct Native Play loading "${name}" (${fb(uOff)})...`);
@@ -427,14 +428,26 @@ async function go(videoOnly=false){
     const sg=document.getElementById('specs');sg.innerHTML=sp.map(([k,v])=>`<div class="sb"><div class="sk">${k}</div><div class="sv">${v}</div></div>`).join('');sg.style.display='grid';
 
     const vid=document.getElementById('vid');vid.style.display='block';document.getElementById('tel').style.display='flex';
-    vid.onerror=()=>{
+    vid.onerror=async()=>{
       const msg=vid.error?.message||String(vid.error?.code||'Decode error');
       if(!videoOnly&&/audio/i.test(msg)){
         st('Audio packet issue — Video-Only mode mein auto-play ho raha hai...','ok');
         setTimeout(()=>go(true),200);return;
       }
       if(st0.uOff<=120*1048576)document.getElementById('natBtn').style.display='block';
-      st(`Decode error: ${msg}`,'err');
+      let dbg='';
+      try{
+        const trk=st0.mp4.getTrackById(st0.vt.id);
+        const s8=trk?.samples?.[8];
+        if(s8){
+          const ro=s8.offset-st0.shift;
+          const fr=await fRange(st0.url,ro,ro+Math.min(16,s8.size)-1,ac.signal);
+          await st0.patchBuf(ro,fr.data);
+          const hx=Array.from(fr.data).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+          dbg=`\nSample#8 vOff=${s8.offset} realOff=${ro} sz=${s8.size} hex=${hx} | isV1=${st0.isV1} aft=${st0.aft} mdOff=${st0.mdOff}`;
+        }
+      }catch{}
+      st(`Decode error: ${msg}${dbg}`,'err');
     };
 
     const ms=new MediaSource();S.url=URL.createObjectURL(ms);vid.src=S.url;
